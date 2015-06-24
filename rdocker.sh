@@ -16,7 +16,9 @@ if [ -z "${RDOCKER_HOST}" ]; then
 	echo "Env var RDOCKER_HOST not specified";
 	exit 1
 fi
-REMOTE_DIR="/tmp/$RANDOM"
+if [ -z "${RDOCKER_BUILD_PATH}" ]; then
+	RDOCKER_BUILD_PATH="/tmp/$RANDOM$RANDOM"
+fi
 if [ -f "id_rsa" ]; then
 	echo "Using given id_rsa key file"
 	SSH_KEY_OPT="-i id_rsa"
@@ -34,10 +36,10 @@ if [ -f ".dockercfg" ]; then
 	fi
 fi
 if [ ! -z "${RDOCKER_SYNC}" ]; then 
-	echo "Uploading project for docker command $1"
-	rsync -rav --exclude=.git --delete $RSYNC_SSH_OPTS . $RDOCKER_USER@$RDOCKER_HOST:$REMOTE_DIR
+	echo "Uploading project to $RDOCKER_BUILD_PATH"
+	rsync -r --exclude=.git $RSYNC_SSH_OPTS . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
 	echo "Done"
-	CD_COMMAND="cd $REMOTE_DIR; "
+	CD_COMMAND="cd $RDOCKER_BUILD_PATH; "
 fi
 
 REMOTE_COMMAND="$CD_COMMAND docker $@"
@@ -45,7 +47,7 @@ ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$REMOTE_COMMAND"
 BUILD_RESULT=$?
 if [ -f ".dockercfg" ]; then
 	echo "Deleting remote .dockercfg file"
-	ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $REMOTE_DIR"
+	ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $RDOCKER_BUILD_PATH"
 	echo "Done"
 fi
 exit $BUILD_RESULT
