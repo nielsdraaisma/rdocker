@@ -11,7 +11,7 @@
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
 if [ ! -z "${RDOCKER_DEBUG}" ]; then 
 	set -x
-	SSH_DEBUG_OPTS=" -v -v "
+	SSH_DEBUG_OPTS=" -v "
 fi
 if [ -z "${RDOCKER_USER}" ]; then 
 	echo "Env var RDOCKER_USER not specified";
@@ -30,7 +30,8 @@ fi
 
 if [ -f "id_rsa" ]; then
 	SSH_KEY_OPT="-i id_rsa"
-	echo "found id_rsa file, using SSH option : $SSH_KEY_OPT"
+	SSH_KEY_HASH=$(cat id_rsa | openssl md5 -c)
+	echo "found id_rsa file ( $SSH_KEY_HASH ), using SSH option : $SSH_KEY_OPT"
 fi
 
 if [ -f ".dockercfg" ]; then
