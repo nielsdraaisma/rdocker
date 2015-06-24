@@ -9,7 +9,10 @@
 # RDOCKER_SYNC        - enabled/disable remote sync
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
-set -x
+if [ ! -z "${RDOCKER_DEBUG}" ]; then 
+	set -x
+	SSH_DEBUG_OPTS=" -v -v "
+fi
 if [ -z "${RDOCKER_USER}" ]; then 
 	echo "Env var RDOCKER_USER not specified";
 	exit 1
@@ -32,7 +35,7 @@ fi
 
 if [ -f ".dockercfg" ]; then
 	echo "Uploading .dockercfg file"
-	scp $SSH_KEY_OPT .dockercfg $RDOCKER_USER@$RDOCKER_HOST:
+	scp $SSH_KEY_OPT $SSH_DEBUG_OPTS .dockercfg $RDOCKER_USER@$RDOCKER_HOST:
 	SCP_RESULT=$?
 	if [ ! $SCP_RESULT -eq 0 ]; then
 		echo "Failed to upload docker config"
@@ -44,20 +47,20 @@ fi
 if [ ! -z "${RDOCKER_SYNC}" ]; then 
 	echo "Uploading project into $RDOCKER_BUILD_PATH"
 	if [ ! -z "$SSH_KEY_OPT" ]; then
-		rsync -ra --exclude=.git --delete -e "ssh $SSH_KEY_OPT -C -c blowfish" . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --ignore=id_rsa --delete -e "ssh $SSH_KEY_OPT -C -c blowfish" . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
 	else 
-		rsync -ra --exclude=.git --delete  . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --ignore=id_rsa --delete  . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
 	fi
 	echo "Done"
 	CD_COMMAND="cd $RDOCKER_BUILD_PATH; "
 fi
 
-ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$CD_COMMAND docker $@"
+ssh $SSH_DEBUG_OPTS $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$CD_COMMAND docker $@"
 BUILD_RESULT=$?
 
 if [ -f ".dockercfg" ]; then
 	echo "Deleting remote .dockercfg file"
-	ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $RDOCKER_BUILD_PATH"
+	ssh $SSH_DEBUG_OPTS $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $RDOCKER_BUILD_PATH"
 	echo "Done"
 fi
 
