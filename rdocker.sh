@@ -41,7 +41,6 @@ if [ ! -z "${RDOCKER_SYNC}" ]; then
 fi
 
 REMOTE_COMMAND="$CD_COMMAND docker $@"
-echo "Executing remote command : $RE"
 ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$REMOTE_COMMAND"
 BUILD_RESULT=$?
 if [ -f ".dockercfg" ]; then
