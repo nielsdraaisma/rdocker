@@ -5,9 +5,11 @@
 # Env vars :
 # RDOCKER_USER - userid on remote host
 # RDOCKER_HOST - remote hostname
-# RCODCKER_SYNC - If set rsyncs the entire project to a remote temp directory
+# RDOCKER_BUILD_PATH  - remote path to sync into
+# RDOCKER_SYNC        - enabled/disable remote sync
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
+set -x
 if [ -z "${RDOCKER_USER}" ]; then 
 	echo "Env var RDOCKER_USER not specified";
 	exit 1
@@ -19,13 +21,13 @@ fi
 if [ -z "${RDOCKER_BUILD_PATH}" ]; then
 	RDOCKER_BUILD_PATH="/tmp/$RANDOM$RANDOM"
 fi
+
 if [ -f "id_rsa" ]; then
 	echo "Using given id_rsa key file"
 	SSH_KEY_OPT="-i id_rsa"
-	RSYNC_SSH_OPTS="-e 'ssh $SSH_KEY_OPT -C -c blowfish'"
 	echo "Using SSH option : $SSH_KEY_OPT"
-	echo "Using rsync options : $RSYNC_SSH_OPTS"
 fi
+
 if [ -f ".dockercfg" ]; then
 	echo "Uploading .dockercfg file"
 	scp $SSH_KEY_OPT .dockercfg $RDOCKER_USER@$RDOCKER_HOST:
@@ -35,19 +37,25 @@ if [ -f ".dockercfg" ]; then
 		exit $SCP_RESULT
 	fi
 fi
+
 if [ ! -z "${RDOCKER_SYNC}" ]; then 
-	echo "Uploading project to $RDOCKER_BUILD_PATH"
-	rsync -r --exclude=.git $RSYNC_SSH_OPTS . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+	echo "Uploading project into $RDOCKER_BUILD_PATH"
+	if [ ! -z "$SSH_KEY_OPT" ]; then
+		rsync -ra --exclude=.git --delete -e "ssh $SSH_KEY_OPT -C -c blowfish" . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+	else 
+		rsync -ra --exclude=.git --delete  . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+	fi
 	echo "Done"
 	CD_COMMAND="cd $RDOCKER_BUILD_PATH; "
 fi
 
-REMOTE_COMMAND="$CD_COMMAND docker $@"
-ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$REMOTE_COMMAND"
+ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$CD_COMMAND docker $@"
 BUILD_RESULT=$?
+
 if [ -f ".dockercfg" ]; then
 	echo "Deleting remote .dockercfg file"
 	ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $RDOCKER_BUILD_PATH"
 	echo "Done"
 fi
+
 exit $BUILD_RESULT
