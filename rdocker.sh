@@ -9,7 +9,7 @@
 # RDOCKER_SYNC        - enabled/disable remote sync
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
-set -x
+# set -x
 if [ -z "${RDOCKER_USER}" ]; then 
 	echo "Env var RDOCKER_USER not specified";
 	exit 1
