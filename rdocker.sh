@@ -9,7 +9,7 @@
 # RDOCKER_SYNC        - enabled/disable remote sync
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
-# set -x
+set -x
 if [ -z "${RDOCKER_USER}" ]; then 
 	echo "Env var RDOCKER_USER not specified";
 	exit 1
@@ -18,14 +18,16 @@ if [ -z "${RDOCKER_HOST}" ]; then
 	echo "Env var RDOCKER_HOST not specified";
 	exit 1
 fi
+
+echo "Starting remote docker build as ${RDOCKER_USER}@${RDOCKER_HOST}"
+
 if [ -z "${RDOCKER_BUILD_PATH}" ]; then
 	RDOCKER_BUILD_PATH="/tmp/$RANDOM$RANDOM"
 fi
 
 if [ -f "id_rsa" ]; then
-	echo "Using given id_rsa key file"
 	SSH_KEY_OPT="-i id_rsa"
-	echo "Using SSH option : $SSH_KEY_OPT"
+	echo "found id_rsa file, using SSH option : $SSH_KEY_OPT"
 fi
 
 if [ -f ".dockercfg" ]; then
@@ -36,6 +38,7 @@ if [ -f ".dockercfg" ]; then
 		echo "Failed to upload docker config"
 		exit $SCP_RESULT
 	fi
+	echo "Done"
 fi
 
 if [ ! -z "${RDOCKER_SYNC}" ]; then 
