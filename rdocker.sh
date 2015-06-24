@@ -5,7 +5,7 @@
 # Env vars :
 # RDOCKER_USER - userid on remote host
 # RDOCKER_HOST - remote hostname
-# 
+# RCODCKER_SYNC - If set rsyncs the entire project to a remote temp directory
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
 if [ -z "${RDOCKER_USER}" ]; then 
