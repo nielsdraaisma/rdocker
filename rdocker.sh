@@ -3,11 +3,19 @@
 # Remote docker wrapper.
 # Rsyncs current working directory onto the target and performs docker commands on remote host
 # Env vars :
-# BUILD_USER - userid on remote host
-# BUILD_HOST - remote hostname
+# RDOCKER_USER - userid on remote host
+# RDOCKER_HOST - remote hostname
 # 
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
+if [ -z "${RDOCKER_USER}" ]; then 
+	echo "Env var RDOCKER_USER not specified";
+	exit 1
+fi
+if [ -z "${RDOCKER_HOST}" ]; then 
+	echo "Env var RDOCKER_HOST not specified";
+	exit 1
+fi
 REMOTE_DIR="/tmp/$RANDOM"
 if [ -f "id_rsa" ]; then
 	echo "Using given id_rsa key file"
@@ -18,24 +26,27 @@ if [ -f "id_rsa" ]; then
 fi
 if [ -f ".dockercfg" ]; then
 	echo "Uploading .dockercfg file"
-	scp $SSH_KEY_OPT .dockercfg $BUILD_USER@$BUILD_HOST:
+	scp $SSH_KEY_OPT .dockercfg $RDOCKER_USER@$RDOCKER_HOST:
 	SCP_RESULT=$?
 	if [ ! $SCP_RESULT -eq 0 ]; then
 		echo "Failed to upload docker config"
 		exit $SCP_RESULT
 	fi
 fi
-if [ $1 == "build" ]; then 
+if [ ! -z "${RDOCKER_SYNC}" ]; then 
 	echo "Uploading project for docker command $1"
-	rsync -rav --exclude=.git --delete $RSYNC_SSH_OPTS . $BUILD_USER@$BUILD_HOST:$REMOTE_DIR
+	rsync -rav --exclude=.git --delete $RSYNC_SSH_OPTS . $RDOCKER_USER@$RDOCKER_HOST:$REMOTE_DIR
 	echo "Done"
 	CD_COMMAND="cd $REMOTE_DIR; "
 fi
-ssh $SSH_KEY_OPT $BUILD_USER@$BUILD_HOST -t -t "$CD_COMMAND docker $@"
+
+REMOTE_COMMAND="$CD_COMMAND docker $@"
+echo "Executing remote command : $RE"
+ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST -t -t "$REMOTE_COMMAND"
 BUILD_RESULT=$?
 if [ -f ".dockercfg" ]; then
 	echo "Deleting remote .dockercfg file"
-	ssh $SSH_KEY_OPT $BUILD_USER@$BUILD_HOST "rm -Rf ~/.dockercfg $REMOTE_DIR"
+	ssh $SSH_KEY_OPT $RDOCKER_USER@$RDOCKER_HOST "rm -Rf ~/.dockercfg $REMOTE_DIR"
 	echo "Done"
 fi
 exit $BUILD_RESULT
