@@ -52,9 +52,9 @@ fi
 if [ ! -z "${RDOCKER_SYNC}" ]; then 
 	echo "Uploading project into $RDOCKER_BUILD_PATH"
 	if [ ! -z "$SSH_KEY_OPT" ]; then
-		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --ignore=id_rsa --delete -e "ssh $SSH_KEY_OPT -C -c blowfish" . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --exclude=${RDOCKER_KEY_FILE} --delete -e "ssh $SSH_KEY_OPT -C -c blowfish" . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
 	else 
-		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --ignore=id_rsa --delete  . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
+		rsync $SSH_DEBUG_OPTS -ra --exclude=.git --exclude=${RDOCKER_KEY_FILE} --delete  . $RDOCKER_USER@$RDOCKER_HOST:$RDOCKER_BUILD_PATH
 	fi
 	echo "Done"
 	CD_COMMAND="cd $RDOCKER_BUILD_PATH; "
