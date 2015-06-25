@@ -3,10 +3,11 @@
 # Remote docker wrapper.
 # Rsyncs current working directory onto the target and performs docker commands on remote host
 # Env vars :
-# RDOCKER_USER - userid on remote host
-# RDOCKER_HOST - remote hostname
-# RDOCKER_BUILD_PATH  - remote path to sync into
-# RDOCKER_SYNC        - enabled/disable remote sync
+# RDOCKER_USER         - userid on remote host
+# RDOCKER_HOST         - remote hostname
+# RDOCKER_BUILD_PATH   - remote path to sync into
+# RDOCKER_SYNC         - enabled/disable remote sync
+# RDOCKER_KEY_FILE     - alternative name for ssh private key file  ( default : id_rsa )
 # - All other arguments are passed onto the remote docker command.
 # - If the first argument is 'build' the entire local directory is rsynced and used as build directory
 if [ ! -z "${RDOCKER_DEBUG}" ]; then 
@@ -21,6 +22,9 @@ if [ -z "${RDOCKER_HOST}" ]; then
 	echo "Env var RDOCKER_HOST not specified";
 	exit 1
 fi
+if [ -z "${RDOCKER_KEY_FILE}" ]; then
+	RDOCKER_KEY_FILE="id_rsa"
+fi
 
 echo "Starting remote docker build as ${RDOCKER_USER}@${RDOCKER_HOST}"
 
@@ -28,10 +32,10 @@ if [ -z "${RDOCKER_BUILD_PATH}" ]; then
 	RDOCKER_BUILD_PATH="/tmp/$RANDOM$RANDOM"
 fi
 
-if [ -f "id_rsa" ]; then
-	SSH_KEY_OPT="-i id_rsa"
-	SSH_KEY_HASH=$(cat id_rsa | openssl md5 -c)
-	echo "found id_rsa file ( $SSH_KEY_HASH ), using SSH option : $SSH_KEY_OPT"
+if [ -f "${RDOCKER_KEY_FILE}" ]; then
+	SSH_KEY_OPT="-i ${RDOCKER_KEY_FILE}"
+	SSH_KEY_HASH=$(cat ${RDOCKER_KEY_FILE} | openssl md5 -c)
+	echo "found key file '${RDOCKER_KEY_FILE}' ( $SSH_KEY_HASH ), using SSH option : $SSH_KEY_OPT"
 fi
 
 if [ -f ".dockercfg" ]; then
